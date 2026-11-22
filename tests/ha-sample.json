@@ -1,0 +1,40 @@
+{
+ "id": "find",
+ "name": "Find",
+ "icon": "find",
+ "backend": "ha",
+ "discover": {
+  "kind": "mobile_app",
+  "names": {
+   "test_tablet": "Tab"
+  },
+  "order": [
+   "test_phone"
+  ],
+  "exclude": [],
+  "data": {
+   "title": "Find {name}",
+   "message": "Ringing from the Cardputer",
+   "data": {
+    "push": {
+     "interruption-level": "critical",
+     "sound": {
+      "name": "default",
+      "critical": 1,
+      "volume": 1.0
+     }
+    },
+    "ttl": 0,
+    "priority": "high",
+    "channel": "alarm_stream"
+   }
+  },
+  "repeat": {
+   "every": 2,
+   "for": 20
+  }
+ },
+ "layout": {},
+ "todo": "Apple's own Find My sound (HA iCloud integration) stays an option.",
+ "_comment": "Every device with the Home Assistant app gets a key (discovered, with a refresh key). One payload rings both kinds: iOS reads push (critical alert), Android reads ttl/priority/channel (alarm stream). names/order/exclude are optional overrides by mobile_app id."
+}

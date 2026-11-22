@@ -1,0 +1,31 @@
+{
+ "id": "announce",
+ "name": "Announce",
+ "icon": "speaker",
+ "backend": "announce",
+ "targets": [
+  {
+   "entity": "media_player.living_room",
+   "label": "ARC",
+   "announce": true
+  },
+  {
+   "entity": "media_player.bedroom",
+   "label": "BEAM",
+   "announce": true
+  },
+  {
+   "entity": "media_player.portable",
+   "label": "MOVE",
+   "announce": true
+  },
+  {
+   "entity": "media_player.kitchen_display",
+   "label": "NEST",
+   "announce": false
+  }
+ ],
+ "alarm": {
+  "url": "http://homeassistant.local:8123/local/sounds/siren.wav"
+ }
+}

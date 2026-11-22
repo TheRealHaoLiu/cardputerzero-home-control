@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Home
+Exec=/usr/share/APPLaunch/bin/home-control
+Terminal=false
+Icon=share/images/home-control.png
+Type=Application

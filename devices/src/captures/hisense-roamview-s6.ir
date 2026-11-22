@@ -1,0 +1,12 @@
+Filetype: IR signals file
+Version: 1
+#
+# Hisense RoamView S6 remote, captured 2026-11-21 on the CardputerZero receiver (ir-ctl -r --one-shot).
+# NECext address 0xCF00, command 0x0D (check byte valid). Only Power is infrared on this remote while
+# it is paired; the other buttons are Bluetooth (no IR seen in two 30 s captures).
+#
+name: Power
+type: raw
+frequency: 38000
+duty_cycle: 0.330000
+data: 9016 4463 577 530 573 529 573 533 569 531 573 531 595 507 571 533 594 509 593 1638 595 1639 598 1635 594 1640 593 537 566 538 564 1643 590 1646 588 1646 586 540 563 1670 564 1670 565 539 564 539 564 539 565 538 564 539 563 1670 564 540 564 539 563 1670 565 1669 562 1671 563 1670 564

@@ -1,0 +1,290 @@
+{
+ "id": "samsung-tv",
+ "name": "Samsung TV",
+ "icon": "tv",
+ "backend": "ir",
+ "fixed": {
+  "u": {
+   "id": "home",
+   "label": "HOME",
+   "symbol": "⌂",
+   "group": "mode"
+  },
+  "i": {
+   "id": "up",
+   "label": "UP",
+   "symbol": "▲",
+   "group": "flow"
+  },
+  "o": {
+   "id": "back",
+   "label": "BACK",
+   "symbol": "↶",
+   "group": "mode"
+  },
+  "j": {
+   "id": "left",
+   "label": "LEFT",
+   "symbol": "◀",
+   "group": "flow"
+  },
+  "k": {
+   "id": "down",
+   "label": "DOWN",
+   "symbol": "▼",
+   "group": "flow"
+  },
+  "l": {
+   "id": "right",
+   "label": "RIGHT",
+   "symbol": "▶",
+   "group": "flow"
+  },
+  "enter": {
+   "id": "ok",
+   "label": "OK",
+   "symbol": "●",
+   "group": "pwr"
+  }
+ },
+ "pages": [
+  {
+   "q": {
+    "id": "power",
+    "label": "PWR",
+    "symbol": "◉",
+    "group": "pwr"
+   },
+   "a": {
+    "id": "source",
+    "label": "SOURCE",
+    "symbol": "⇄",
+    "group": "mode"
+   },
+   "w": {
+    "id": "vol_up",
+    "label": "VOL",
+    "symbol": "▲",
+    "group": "heat"
+   },
+   "s": {
+    "id": "vol_down",
+    "label": "VOL",
+    "symbol": "▼",
+    "group": "heat"
+   },
+   "e": {
+    "id": "ch_up",
+    "label": "CH",
+    "symbol": "▲",
+    "group": "fan"
+   },
+   "d": {
+    "id": "ch_down",
+    "label": "CH",
+    "symbol": "▼",
+    "group": "fan"
+   },
+   "r": {
+    "id": "mute",
+    "label": "MUTE",
+    "symbol": "✕",
+    "group": "cool"
+   },
+   "f": {
+    "id": "settings",
+    "label": "SETUP",
+    "symbol": "⚙",
+    "group": "mode"
+   },
+   "t": {
+    "id": "play",
+    "label": "PLAY",
+    "symbol": "▶",
+    "group": "cool"
+   },
+   "g": {
+    "id": "pause",
+    "label": "PAUSE",
+    "symbol": "‖",
+    "group": "cool"
+   },
+   "y": {
+    "id": "exit",
+    "label": "EXIT",
+    "symbol": "✕",
+    "group": "mode"
+   },
+   "h": {
+    "id": "info",
+    "label": "INFO",
+    "symbol": "i",
+    "group": "mode"
+   }
+  },
+  {
+   "q": {
+    "id": "ff",
+    "label": "FWD",
+    "symbol": "»",
+    "group": "cool"
+   },
+   "a": {
+    "id": "rew",
+    "label": "REW",
+    "symbol": "«",
+    "group": "cool"
+   },
+   "w": {
+    "id": "stop",
+    "label": "STOP",
+    "symbol": "■",
+    "group": "cool"
+   },
+   "s": {
+    "id": "guide",
+    "label": "GUIDE",
+    "symbol": "☷",
+    "group": "fan"
+   },
+   "e": {
+    "id": "ch_list",
+    "label": "CHLST",
+    "symbol": "≡",
+    "group": "fan"
+   },
+   "d": {
+    "id": "subs",
+    "label": "SUBS",
+    "symbol": "≡",
+    "group": "mode"
+   },
+   "r": {
+    "id": "netflix",
+    "label": "NFLX",
+    "symbol": "N",
+    "group": "pwr"
+   },
+   "f": {
+    "id": "prime",
+    "label": "PRIME",
+    "symbol": "P",
+    "group": "cool"
+   },
+   "t": {
+    "id": "pre_ch",
+    "label": "PRE-CH",
+    "symbol": "↶",
+    "group": "fan"
+   }
+  },
+  {
+   "q": {
+    "id": "d1",
+    "label": "1",
+    "symbol": "1",
+    "group": "mode"
+   },
+   "w": {
+    "id": "d2",
+    "label": "2",
+    "symbol": "2",
+    "group": "mode"
+   },
+   "e": {
+    "id": "d3",
+    "label": "3",
+    "symbol": "3",
+    "group": "mode"
+   },
+   "r": {
+    "id": "d4",
+    "label": "4",
+    "symbol": "4",
+    "group": "mode"
+   },
+   "t": {
+    "id": "d5",
+    "label": "5",
+    "symbol": "5",
+    "group": "mode"
+   },
+   "a": {
+    "id": "d6",
+    "label": "6",
+    "symbol": "6",
+    "group": "mode"
+   },
+   "s": {
+    "id": "d7",
+    "label": "7",
+    "symbol": "7",
+    "group": "mode"
+   },
+   "d": {
+    "id": "d8",
+    "label": "8",
+    "symbol": "8",
+    "group": "mode"
+   },
+   "f": {
+    "id": "d9",
+    "label": "9",
+    "symbol": "9",
+    "group": "mode"
+   },
+   "g": {
+    "id": "d0",
+    "label": "0",
+    "symbol": "0",
+    "group": "mode"
+   }
+  }
+ ],
+ "code_sets": {
+  "A": {
+   "file": "../../third_party/flipper-irdb/Samsung_BN59-01315B.ir",
+   "source": "Flipper-IRDB TVs/Samsung/Samsung_BN59-01315B.ir (CC0), Samsung32 address 0x07 (shared by most Samsung TVs)",
+   "map": {
+    "power": "Power",
+    "source": "Source",
+    "vol_up": "Vol_up",
+    "vol_down": "Vol_dn",
+    "ch_up": "Ch_next",
+    "ch_down": "Ch_prev",
+    "mute": "Mute",
+    "settings": "Settings",
+    "play": "Play",
+    "pause": "Pause",
+    "exit": "Exit",
+    "info": "Info",
+    "ff": "Fast_fw",
+    "rew": "Rewind",
+    "stop": "Stop",
+    "guide": "Guide",
+    "ch_list": "Ch_list",
+    "subs": "Ad_subt",
+    "netflix": "Netflix",
+    "prime": "Prime",
+    "pre_ch": "Pre_ch",
+    "home": "Home",
+    "up": "Up",
+    "down": "Down",
+    "left": "Left",
+    "right": "Right",
+    "back": "Return",
+    "ok": "Ok",
+    "d0": "0",
+    "d1": "1",
+    "d2": "2",
+    "d3": "3",
+    "d4": "4",
+    "d5": "5",
+    "d6": "6",
+    "d7": "7",
+    "d8": "8",
+    "d9": "9"
+   }
+  }
+ }
+}

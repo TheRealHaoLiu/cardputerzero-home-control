@@ -1,0 +1,100 @@
+{
+ "id": "dyson-hp02",
+ "name": "Dyson Hot+Cool",
+ "icon": "dyson",
+ "backend": "ir",
+ "layout": {
+  "q": {
+   "id": "power",
+   "label": "PWR",
+   "symbol": "◉",
+   "group": "pwr"
+  },
+  "a": {
+   "id": "auto",
+   "label": "AUTO",
+   "symbol": "A",
+   "group": "mode"
+  },
+  "w": {
+   "id": "cool",
+   "label": "COOL",
+   "symbol": "❄",
+   "group": "cool"
+  },
+  "s": {
+   "id": "osc",
+   "label": "OSC",
+   "symbol": "↔",
+   "group": "flow"
+  },
+  "e": {
+   "id": "heat_up",
+   "label": "HEAT",
+   "symbol": "▲",
+   "group": "heat"
+  },
+  "d": {
+   "id": "heat_down",
+   "label": "HEAT",
+   "symbol": "▼",
+   "group": "heat"
+  },
+  "r": {
+   "id": "fan_up",
+   "label": "FAN",
+   "symbol": "▲",
+   "group": "fan"
+  },
+  "f": {
+   "id": "fan_down",
+   "label": "FAN",
+   "symbol": "▼",
+   "group": "fan"
+  },
+  "t": {
+   "id": "slim",
+   "label": "SLIM",
+   "symbol": "│",
+   "group": "flow"
+  },
+  "g": {
+   "id": "wide",
+   "label": "WIDE",
+   "symbol": "║",
+   "group": "flow"
+  },
+  "y": {
+   "id": "night",
+   "label": "NIGHT",
+   "symbol": "☾",
+   "group": "mode"
+  },
+  "h": {
+   "id": "timer",
+   "label": "TIMER",
+   "symbol": "◷",
+   "group": "mode"
+  }
+ },
+ "code_sets": {
+  "A": {
+   "file": "../../third_party/flipper-irdb/Dyson_HP02.ir",
+   "source": "Flipper-IRDB Fans/Dyson/Dyson_HP02.ir (CC0); tested on an HP02 (2026-11-21)",
+   "map": {
+    "power": "Power",
+    "auto": "Auto",
+    "cool": "Cold",
+    "osc": "Rotate",
+    "heat_up": "HeatUp",
+    "heat_down": "HeatDown",
+    "fan_up": "StrengthUp",
+    "fan_down": "StrengthDown",
+    "slim": "Narrow",
+    "wide": "Wide",
+    "night": "Moon",
+    "timer": "Clock"
+   }
+  }
+ }
+}

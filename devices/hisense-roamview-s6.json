@@ -1,0 +1,210 @@
+{
+ "id": "hisense-roamview-s6",
+ "name": "RoamView S6",
+ "icon": "tablet",
+ "backend": "kdeconnect",
+ "pages": [
+  {
+   "q": {
+    "id": "power",
+    "label": "PWR",
+    "symbol": "\u25c9",
+    "group": "pwr"
+   },
+   "w": {
+    "id": "vol_up",
+    "label": "VOL",
+    "symbol": "\u25b2",
+    "group": "heat",
+    "vol": 10
+   },
+   "e": {
+    "id": "prev",
+    "label": "PREV",
+    "symbol": "\u25c0\u25c0",
+    "group": "cool",
+    "mpris": "Previous"
+   },
+   "r": {
+    "id": "play",
+    "label": "PLAY",
+    "symbol": "\u25b6\u2016",
+    "group": "cool",
+    "mpris": "PlayPause"
+   },
+   "t": {
+    "id": "next",
+    "label": "NEXT",
+    "symbol": "\u25b6\u25b6",
+    "group": "cool",
+    "mpris": "Next"
+   },
+   "u": {
+    "id": "home",
+    "label": "HOME",
+    "symbol": "\u2302",
+    "group": "mode",
+    "kde": {
+     "middleclick": true
+    }
+   },
+   "i": {
+    "id": "scroll_up",
+    "label": "SCRL",
+    "symbol": "\u25b2",
+    "group": "flow",
+    "kde": {
+     "scroll": true,
+     "dx": 0,
+     "dy": -500
+    }
+   },
+   "o": {
+    "id": "back",
+    "label": "BACK",
+    "symbol": "\u21b6",
+    "group": "mode",
+    "kde": {
+     "backclick": true
+    }
+   },
+   "s": {
+    "id": "vol_down",
+    "label": "VOL",
+    "symbol": "\u25bc",
+    "group": "heat",
+    "vol": -10
+   },
+   "j": {
+    "id": "recents",
+    "label": "RECNT",
+    "symbol": "\u25a4",
+    "group": "mode",
+    "kde": {
+     "doubleclick": true
+    }
+   },
+   "k": {
+    "id": "scroll_down",
+    "label": "SCRL",
+    "symbol": "\u25bc",
+    "group": "flow",
+    "kde": {
+     "scroll": true,
+     "dx": 0,
+     "dy": 500
+    }
+   }
+  },
+  {
+   "q": {
+    "id": "yt_music",
+    "label": "MUSIC",
+    "symbol": "\u266b",
+    "group": "fan",
+    "url": "https://music.youtube.com"
+   },
+   "w": {
+    "id": "youtube",
+    "label": "YT",
+    "symbol": "\u25b6",
+    "group": "fan",
+    "url": "https://www.youtube.com"
+   }
+  }
+ ],
+ "fixed": {
+  "enter": {
+   "id": "ok",
+   "label": "TAP",
+   "symbol": "\u25cf",
+   "group": "cool",
+   "kde": {
+    "singleclick": true
+   }
+  }
+ },
+ "keyboard": "kdeconnect",
+ "hint": "SPACE steer, ENTER tap\nhold ENTER: long press\n0 or Fn+ENTER: type",
+ "todo": "Links on page 2 are placeholders; a house card can replace them with its own.",
+ "code_sets": {
+  "A": {
+   "source": "captured from the S6 remote, 2026-11-21",
+   "signals": {
+    "power": {
+     "carrier": 38000,
+     "duty": 33,
+     "raw": [
+      9016,
+      4463,
+      577,
+      530,
+      573,
+      529,
+      573,
+      533,
+      569,
+      531,
+      573,
+      531,
+      595,
+      507,
+      571,
+      533,
+      594,
+      509,
+      593,
+      1638,
+      595,
+      1639,
+      598,
+      1635,
+      594,
+      1640,
+      593,
+      537,
+      566,
+      538,
+      564,
+      1643,
+      590,
+      1646,
+      588,
+      1646,
+      586,
+      540,
+      563,
+      1670,
+      564,
+      1670,
+      565,
+      539,
+      564,
+      539,
+      564,
+      539,
+      565,
+      538,
+      564,
+      539,
+      563,
+      1670,
+      564,
+      540,
+      564,
+      539,
+      563,
+      1670,
+      565,
+      1669,
+      562,
+      1671,
+      563,
+      1670,
+      564
+     ]
+    }
+   }
+  }
+ }
+}

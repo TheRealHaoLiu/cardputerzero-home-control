@@ -1,0 +1,111 @@
+{
+ "id": "apple-tv-4k",
+ "name": "Apple TV 4K",
+ "icon": "appletv",
+ "backend": "ir",
+ "fixed": {
+  "u": {
+   "id": "home",
+   "label": "TV",
+   "symbol": "⌂",
+   "group": "mode"
+  },
+  "i": {
+   "id": "up",
+   "label": "UP",
+   "symbol": "▲",
+   "group": "flow"
+  },
+  "o": {
+   "id": "back",
+   "label": "BACK",
+   "symbol": "↶",
+   "group": "mode"
+  },
+  "j": {
+   "id": "left",
+   "label": "LEFT",
+   "symbol": "◀",
+   "group": "flow"
+  },
+  "k": {
+   "id": "down",
+   "label": "DOWN",
+   "symbol": "▼",
+   "group": "flow"
+  },
+  "l": {
+   "id": "right",
+   "label": "RIGHT",
+   "symbol": "▶",
+   "group": "flow"
+  },
+  "enter": {
+   "id": "ok",
+   "label": "OK",
+   "symbol": "●",
+   "group": "pwr"
+  }
+ },
+ "pages": [
+  {
+   "q": {
+    "id": "power_on",
+    "label": "ON",
+    "symbol": "◉",
+    "group": "pwr"
+   },
+   "a": {
+    "id": "power_off",
+    "label": "OFF",
+    "symbol": "○",
+    "group": "pwr"
+   },
+   "w": {
+    "id": "play_pause",
+    "label": "PLAY",
+    "symbol": "▶",
+    "group": "cool"
+   },
+   "e": {
+    "id": "vol_up",
+    "label": "VOL",
+    "symbol": "▲",
+    "group": "heat"
+   },
+   "d": {
+    "id": "vol_down",
+    "label": "VOL",
+    "symbol": "▼",
+    "group": "heat"
+   },
+   "r": {
+    "id": "mute",
+    "label": "MUTE",
+    "symbol": "✕",
+    "group": "cool"
+   }
+  }
+ ],
+ "code_sets": {
+  "A": {
+   "file": "../../third_party/flipper-irdb/Apple_TV_4K_Gen2.ir",
+   "source": "Flipper-IRDB Streaming_Devices/Apple/Apple_TV_4K_Gen2.ir (CC0), NECext 0x87EE; volume/mute borrowed from the Samsung TV remote, for a sound bar that answers the TV's remote",
+   "map": {
+    "power_on": "Power_on",
+    "power_off": "Power_off",
+    "play_pause": "Play_pause",
+    "home": "TV",
+    "up": "Up",
+    "down": "Down",
+    "left": "Left",
+    "right": "Right",
+    "back": "Back",
+    "ok": "Ok",
+    "vol_up": "Samsung_BN59-01315B.ir:Vol_up",
+    "vol_down": "Samsung_BN59-01315B.ir:Vol_dn",
+    "mute": "Samsung_BN59-01315B.ir:Mute"
+   }
+  }
+ }
+}

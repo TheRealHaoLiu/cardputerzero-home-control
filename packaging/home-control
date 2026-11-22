@@ -1,0 +1,15 @@
+#!/bin/sh
+# Started by the launcher as the logged-in user. Errors and the Announce card's step lines go to a log
+# on the RAM disk (never the SD card). It is cut back to its last 200 lines at start once it passes
+# 64 KB, and the app empties it while running once it passes 256 KB.
+cd /opt/cardputerzero-home-control || exit 1
+RUN=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}   # the same fallbacks as homectl/hw.py, all in RAM
+[ -d "$RUN" ] || RUN=/dev/shm
+[ -d "$RUN" ] || RUN=${TMPDIR:-/tmp}
+LOG="$RUN/home-control.log"
+if [ "$(stat -c %s "$LOG" 2>/dev/null || echo 0)" -gt 65536 ]; then
+    tail -n 200 "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
+fi
+# One BLAS thread (numpy would otherwise start one per core) and two malloc arenas (not one per thread).
+export OPENBLAS_NUM_THREADS=1 MALLOC_ARENA_MAX=2
+exec python3 -m homectl 2>>"$LOG"
