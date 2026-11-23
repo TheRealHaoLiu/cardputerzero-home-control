@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from . import hw
 from .announce import Announce, ha_call, ha_error
+from .blehid import Hid
 from .kdeconnect import Client as KdcClient, Gyro, write_atomic
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -40,6 +41,10 @@ DIM_UP, DIM_DOWN = 33, 45   # F and X: the Zero's up and down (the CardputerZero
 ZERO_LEFT, ZERO_RIGHT = 44, 46   # Z and C: the Zero's left and right
 HOLD_DIM = 0.5              # seconds holding a dimmable light's key before the dimmer opens
 KDE_KEYS = ("kde", "mpris", "vol", "url")   # what a KDE Connect card's key can carry
+LINK_KEYS = KDE_KEYS + ("hid",)             # keys that go over a link, not infrared ("hid": a Bluetooth card's)
+# A Bluetooth card: the keyboard's own Fn keys as its named keys (homectl/blehid.py)
+NATIVE_HID = {103: "up", 108: "down", 105: "left", 106: "right", 115: "vol_up", 114: "vol_down", 113: "mute",
+              164: "play", 163: "next", 165: "prev", 102: "home"}
 FN = 389
 CAROUSEL_KEYS = {hw.DIGIT["3"]: -1, hw.DIGIT["4"]: -1, hw.DIGIT["5"]: -1, hw.DIGIT["6"]: "open",
                  hw.DIGIT["7"]: 1, hw.DIGIT["8"]: 1, hw.DIGIT["9"]: 1}   # the Cardputer's Fn key, as the keyboard reports it (seen 2026-11-22)
@@ -192,10 +197,13 @@ class App:
         self.hold = None            # (letter, code, when) while a dimmable light's key is held
         self.kdc = KdcClient(log=lambda m: print(f"{time.strftime('%H:%M:%S')} {m}", file=sys.stderr, flush=True),
                              on_change=lambda: setattr(self, "dirty", True))
+        self.hid = Hid(log=self.kdc.log, on_change=lambda: setattr(self, "dirty", True))
+        self.hid_held = {}          # Bluetooth cards: key code -> (letter lit, what it holds down on the device)
+        self.hid_pointing = False   # ... the pointer was used last, so ENTER clicks (an arrow makes it Enter again)
         self.kdc_ate_esc = False    # the ESC that answered "pair with this device?": its release stays on the card
         self.enter_down = None      # KDE Connect cards: when ENTER went down (tap, or hold = long press)
         self.enter_held = False
-        self.gyro = Gyro(self.kdc.send)
+        self.gyro = Gyro(self.steer)
         self._kdc_seen = None
         for d in self.devices:      # cards that start in a set mode each time the app opens (e.g. the Dyson)
             if d.get("modes") and d.get("start_mode") in d["modes"]:
@@ -249,26 +257,71 @@ class App:
         self.settings.setdefault("mode", {})[d["id"]] = m
         self.save_soon()
         self.stop_ha(); self.lit.clear()
+        self.close_links()            # the other mode's link (KDE Connect, Bluetooth) does not stay up
         self.reach.pop(d["id"], None)
         self.say(d["modes"][m].get("label", m), 1.5)
         self.dirty = True
 
-    def kdc_link(self):
-        """Wi-Fi or Bluetooth for the KDE Connect card: the last one picked (explicit, remembered)."""
-        return "bt" if self.settings.get("kdc_link") == "bt" else "wifi"
+    def steer(self, body):
+        """The gyro's pointer moves go to whichever link the card shown uses."""
+        if self.dev and self.dev.get("backend") == "blehid":
+            return self.hid.move(body["dx"], body["dy"])
+        return self.kdc.send(body)
 
-    def cycle_link(self):
-        """Key 9 on a KDE Connect card: Wi-Fi <-> Bluetooth. Nothing switches by itself."""
-        if not self.kdc.has_bt():
-            self.say("Bluetooth is not set up", 2); return
-        link = "wifi" if self.kdc_link() == "bt" else "bt"
-        self.settings["kdc_link"] = link
-        self.save_soon()
-        self.gyro.stop(); self.kdc.close()
-        self.kdc.transport = link
-        self.kdc.start(pair=True)
-        self.say("Bluetooth" if link == "bt" else "Wi-Fi", 1.5)
+    def close_links(self):
+        self.gyro.stop()
+        self.kdc.close()
+        self.hid.close()
+        self.hid_held.clear()
+
+    def hid_key(self, code, down):
+        """A Bluetooth card's keys are held, not tapped: down and up both go to the device, so a held
+        arrow repeats there. ENTER follows what was used last, as Android itself does: after the
+        pointer it is the mouse button (a click where the pointer is), after an arrow it is the Enter
+        key (open what has the focus). While steering, up / down turn the wheel.
+        True when the key was one of the card's."""
+        hid = self.hid
+        if code == 57:                                   # hold Space: the gyro steers the pointer
+            if down and hid.state == "connected":
+                self.gyro.start()
+                self.hid_pointing = True
+            elif not down:
+                self.gyro.stop()
+            self.dirty = True
+            return True
+        if not down:
+            held = self.hid_held.pop(code, None)
+            if held is None:
+                return code == hw.ENTER                  # a release with nothing held (e.g. after a wheel step)
+            hid.click(False) if held[1] == "click" else hid.key(held[1], False)
+            self.lit.pop(held[0], None)
+            self.dirty = True
+            return True
+        layout = self.page_layout(self.dev)
+        steering = self.gyro.run.is_set()
+        if code == hw.ENTER:
+            letter, action = "\u21b5", "click" if self.hid_pointing else "enter"
+        elif code in NATIVE_HID:
+            action = NATIVE_HID[code]
+            letter = next((k for k, b in layout.items() if b.get("hid") == action), "\u21b5")
+        else:
+            letter = next((c for c, n in hw.LETTER.items() if n == code), None)
+            action = (layout.get(letter) or {}).get("hid")
+            if not action:
+                return False
+        if hid.state in ("error", "no bluetooth"):
+            hid.start(); self.say("Starting\u2026", 2)
+        elif steering and action in ("up", "down"):
+            hid.move(0, 0, 1 if action == "up" else -1)
+        elif hid.click(True) if action == "click" else hid.key(action, True):
+            if action in ("up", "down", "left", "right"):
+                self.hid_pointing = False            # back to the focus: ENTER is the Enter key again
+            self.hid_held[code] = (letter, action)
+            self.lit[letter] = None
+        else:
+            self.say("Not connected", 2)
         self.dirty = True
+        return True
 
     # ---- keyboard mode: type on the Cardputer, send a line to the TV (key 0, Wi-Fi only)
     # ---- dimmer: hold a dimmable light's key; F / X (or Fn up / down) in 10 % steps
@@ -350,7 +403,7 @@ class App:
                 self.kdc_ate_esc = False
             return
         if code in (hw.ENTER, hw.ESC):
-            self.kdc.confirm(code == hw.ENTER)
+            (self.hid if self.hid.state == "confirm" else self.kdc).confirm(code == hw.ENTER)
             self.kdc_ate_esc, self.esc_down, self.dirty = code == hw.ESC, None, True
 
     def draw_kdc_panel(self, d, col, title, lines):
@@ -369,6 +422,15 @@ class App:
             self.say("No keyboard on this card", 1.5)
 
     def type_key(self, code, down):
+        if self.dev.get("keyboard") == "blehid":   # a Bluetooth keyboard: every key goes straight to the device
+            if code != hw.ESC:
+                self.hid.evkey(code, down)
+            elif down:
+                self.hid.release()
+                self.typing, self.typing_ate_esc, self.dirty, self.esc_down = None, True, True, None
+            else:
+                self.typing_ate_esc = False
+            return
         if code in (42, 54):                      # shift
             self.shift = down; return
         if code in NATIVE_KEYS:                    # Fn arrows / volume still drive the TV while typing
@@ -409,6 +471,12 @@ class App:
     def draw_typing(self, d):
         box = (10, 30, hw.W - 10, hw.H - 30)
         d.rounded_rectangle(box, radius=8, fill=PANEL, outline=(70, 150, 240), width=2)
+        if self.dev.get("keyboard") == "blehid":
+            d.text((20, 36), "Bluetooth keyboard", font=F_TITLE, fill=TXT)
+            d.text((20, 66), "Every key goes to the device as it is", font=F_SMALL, fill=TXT)
+            d.text((20, 82), "pressed: letters, SHIFT, ENTER, arrows.", font=F_SMALL, fill=TXT)
+            d.text((20, 114), "ESC close", font=F_SMALL, fill=MUTED)
+            return
         d.text((20, 36), "Type to the TV", font=F_TITLE, fill=TXT)
         t = self.typing
         while t and d.textlength(t + "\u258f", font=F_TITLE) > hw.W - 40:
@@ -459,7 +527,7 @@ class App:
         """Pages with only the buttons this code set has; a page left empty is dropped."""
         sigs = dev.get("code_sets", {}).get(self.code_set(dev), {}).get("signals") if dev.get("code_sets") else None
         out = []
-        ok = lambda b: sigs is None or b["id"] in sigs or any(k in b for k in KDE_KEYS)
+        ok = lambda b: sigs is None or b["id"] in sigs or any(k in b for k in LINK_KEYS)
         fixed = {k: b for k, b in dev.get("fixed", {}).items() if ok(b)}
         for page in pages_of(dev):
             shown = {k: b for k, b in page.items() if ok(b)}
@@ -591,8 +659,7 @@ class App:
 
     def leave_card(self):
         """Things a card holds open only while it is shown (e.g. the KDE Connect link, the microphone)."""
-        self.gyro.stop()
-        self.kdc.close()
+        self.close_links()
         self.ann.leave()
 
     def stop_ha(self, letter=None):
@@ -796,9 +863,7 @@ class App:
         corner = 22   # the corners hold the device count (over key 3) and page count (by key 9), fenced off
         raw = self.raw_dev if self.view == "remote" else None
         # Every card shows how it talks over key 9: Wi-Fi (HA, Wake-on-LAN) or infrared
-        mode = ("ir" if self.dev.get("backend") == "ir" else "wifi") if raw else None
-        if raw and self.dev.get("backend") == "kdeconnect":
-            mode = self.kdc_link()
+        mode = ({"ir": "ir", "blehid": "bt"}.get(self.dev.get("backend"), "wifi")) if raw else None
         corner_r = corner   # on cards with modes, key 9's corner shows the mode as an icon (Wi-Fi and IR both)
         edges = [corner - 4] + [(a + b) // 2 for a, b in zip(SOFT_CENTERS, SOFT_CENTERS[1:])] + [hw.W - corner_r]
         edges[1] += 3   # a little more room for key 4's "Devices"
@@ -833,7 +898,8 @@ class App:
                 d.arc((cx - 5, cy - 2, cx + 5, cy + 8), start=225, end=315, fill=TXT, width=2)
                 d.arc((cx - 9, cy - 6, cx + 9, cy + 12), start=225, end=315, fill=TXT, width=2)
             if self.reach.get(raw["id"]) is False or (
-                    self.dev.get("backend") == "kdeconnect" and self.kdc.state in ("no device", "error", "not paired", "bad peers")):
+                    self.dev.get("backend") == "kdeconnect" and self.kdc.state in ("no device", "error", "not paired", "bad peers")) or (
+                    self.dev.get("backend") == "blehid" and self.hid.state in ("error", "no bluetooth", "classic on")):
                 d.text((hw.W - 8, y + 1), "x", font=F_KEY, fill=MUTED)   # a small x, not a red cross
         elif pc:   # page count at the far right, over key 9
             d.text((hw.W - corner + (corner - d.textlength(pc, font=F_SMALL)) / 2, y + 6), pc, font=F_SMALL, fill=MUTED)
@@ -899,7 +965,6 @@ class App:
             self.check_reach(raw)
         if dev.get("backend") == "kdeconnect":
             if self.kdc.state == "idle":
-                self.kdc.transport = self.kdc_link()
                 self.kdc.start(pair=True)
             right = {"connecting": "Connecting\u2026", "connected": "Connected", "pairing": "Accept on the device",
                      "not paired": "Not paired", "no device": "Not found (press a key)", "error": "Error (press a key)",
@@ -907,6 +972,15 @@ class App:
             if self.kdc.state == "connected" and self.kdc.battery and self.kdc.battery[0] is not None:
                 bolt = " \u26a1" if self.kdc.battery[1] else ""
                 right = f"{self.kdc.battery[0]}%{bolt}  " + right
+            if self.gyro.run.is_set():
+                right = "Steering"
+        if dev.get("backend") == "blehid":
+            if self.hid.state == "idle":
+                self.hid.start()
+            new = not self.hid.saved()   # nothing on file yet: the device has to find and pair the Cardputer
+            right = {"starting": "Starting\u2026", "waiting": "Pair it on the device" if new else "Waiting for the device",
+                     "connected": "Connected", "confirm": "Pair? ENTER / ESC", "classic on": "Needs LE-only Bluetooth",
+                     "no bluetooth": "No Bluetooth (press a key)", "error": "Error (press a key)"}.get(self.hid.state, "")
             if self.gyro.run.is_set():
                 right = "Steering"
         if dev.get("discover") and dev["id"] not in self.discovered:
@@ -974,6 +1048,11 @@ class App:
         if dev.get("backend") == "kdeconnect" and self.kdc.state == "confirm" and ask:
             self.draw_kdc_panel(d, (70, 150, 240), "Pair with this device?",
                                 [ask["name"], f"at {ask['ip']}   key {ask['key']}", "ENTER pair      ESC no"])
+        ask = self.hid.asking
+        if dev.get("backend") == "blehid" and self.hid.state == "confirm" and ask:   # the code is also on the device
+            self.draw_kdc_panel(d, (70, 150, 240), "Pair with this device?",
+                                [ask["name"], ask["addr"] + (f"   code {ask['code']}" if ask["code"] else ""),
+                                 "ENTER pair      ESC no"])
         if self.typing is not None:
             self.draw_typing(d)
         if self.dim is not None:
@@ -1017,7 +1096,7 @@ class App:
             self.type_key(code, down); return
         if self.dim is not None or (self.dim_ate_esc and code == hw.ESC):
             self.dim_key(code, down); return
-        if (self.kdc.state == "confirm" and self.view == "remote") or (self.kdc_ate_esc and code == hw.ESC):
+        if ("confirm" in (self.kdc.state, self.hid.state) and self.view == "remote") or (self.kdc_ate_esc and code == hw.ESC):
             self.kdc_confirm_key(code, down); return
         if self.hold and code == self.hold[1]:
             if not down:                   # let go before the dimmer opened: a plain toggle
@@ -1056,6 +1135,8 @@ class App:
                     self.forget_states()
                     self.view, self.dirty = "carousel", True
             return
+        if self.view == "remote" and self.dev and self.dev.get("backend") == "blehid" and self.hid_key(code, down):
+            return
         if code == hw.ENTER and self.view == "remote" and self.dev and self.dev.get("backend") == "kdeconnect" and not self.fn:
             if down:
                 self.enter_down, self.enter_held = time.monotonic(), False
@@ -1092,8 +1173,6 @@ class App:
             return
         if code == hw.DIGIT["9"] and self.view == "remote" and self.raw_dev and self.raw_dev.get("modes"):
             self.cycle_mode(); return
-        if code == hw.DIGIT["9"] and self.view == "remote" and self.dev and self.dev.get("backend") == "kdeconnect":
-            self.cycle_link(); return
         if code == hw.DIGIT["0"] and self.view == "remote" and self.dev:
             self.open_keyboard(); return    # 0 too: both keys open it
         soft = {hw.DIGIT[k]: k for k in SOFT_KEYS}
@@ -1163,7 +1242,7 @@ class App:
                         del self.lit[k]; self.dirty = True
                 if self.note and now >= self.note_until:
                     self.note, self.dirty = "", True
-                seen = (self.kdc.state, self.gyro.run.is_set())
+                seen = (self.kdc.state, self.hid.state, self.gyro.run.is_set())
                 if seen != self._kdc_seen:          # the link's state changes in its own thread
                     self._kdc_seen, self.dirty = seen, True
                 if self.save_due is not None and now >= self.save_due:
@@ -1174,6 +1253,7 @@ class App:
         finally:
             self.stop_ha()
             self.leave_card()
+            self.hid.close(wait=1.5)
             self.ann.rec.cancel()
             self.flush_settings()
             self.screen.close()

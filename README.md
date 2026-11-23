@@ -21,7 +21,7 @@ On a card:
 | 4 | back to the device menu |
 | 5 / 6 | previous / next card |
 | 7 / 8 | page up / down |
-| 9 | switch Wi-Fi / IR on cards that have both (Wi-Fi / Bluetooth on a KDE Connect card); the icon over 9 shows how every card talks |
+| 9 | switch modes on cards that have several (Wi-Fi / IR, or Bluetooth / Wi-Fi); the icon over 9 shows how every card talks |
 | 0 or Fn+ENTER | keyboard mode on cards that can type (type a line, ENTER sends it) |
 | Fn arrows, volume, mute, play, next/prev, home | the matching button on any card, on any page |
 | hold a dimmer's key | a brightness panel: F / X or Z / C change it |
@@ -31,6 +31,12 @@ On the device menu: 3, 4, 5 or Z go left; 7, 8, 9 or C go right; 6 or ENTER open
 
 On a KDE Connect card (an Android device): hold SPACE and move the CardputerZero to steer the pointer,
 ENTER taps, holding ENTER is a long press.
+
+On a Bluetooth card (the CardputerZero as the device's own keyboard, gamepad and mouse): keys are
+held, not tapped, so a held arrow repeats on the device. ENTER selects. 0 or Fn+ENTER turns the whole
+keyboard into the device's keyboard until ESC. Hold SPACE to steer the pointer; while steering, up /
+down turn the wheel. ENTER follows what was used last: after the pointer it clicks where the pointer
+is, after an arrow it opens what has the focus.
 
 ## Cards
 
@@ -53,9 +59,14 @@ replaces it (e.g. the same TV with a Wi-Fi mode added). Card types (`backend`):
 - `kdeconnect`: an Android device with the KDE Connect app, through the small client in
   `homectl/kdeconnect.py`: back / home / recents, scrolling, media keys, typing, and a pointer steered
   by the CardputerZero's gyroscope. The first time, the card asks the device to pair (see Pairing
-  below). Over Wi-Fi; a
-  Bluetooth link is in the code but does not work yet. Opening a link on the device only posts a
+  below). Over Wi-Fi; a KDE Connect link over classic Bluetooth is in the code but never worked and
+  is not offered on a card. Opening a link on the device only posts a
   notification there (KDE Connect's choice).
+- `blehid`: the CardputerZero as a Bluetooth LE keyboard, gamepad and mouse (`homectl/blehid.py`), for
+  a device that takes those natively, such as an Android tablet: nothing is installed on it. A key
+  carries `"hid"`: `up` / `down` / `left` / `right`, `enter`, `esc`, `home`, `back`, `recents`,
+  `vol_up`, `vol_down`, `mute`, `play`, `next`, `prev`, `menu`. The link is up only while the card is
+  open. See Pairing below, and Install for what Bluetooth needs.
 - `announce`: record a voice clip and play it on speakers through Home Assistant.
 - `modes`: one card, several of the above (e.g. `wifi` and `ir`), switched with key 9.
   `start_mode` / `start_fallback`: start in Wi-Fi each time and drop to IR if HA cannot reach it.
@@ -88,6 +99,14 @@ only that device id with that certificate is let in, and everything typed on the
 To pair a different device, delete `~/.config/home-control/kdeconnect/peers.json`. If that file is
 damaged, the card says so and does not pair again by itself.
 
+### Pairing (Bluetooth)
+
+Open the card, then pair from the other device's Bluetooth settings: it lists the CardputerZero while
+the card is open. Both screens show the same six-digit code; ENTER on the CardputerZero accepts, ESC
+says no. The device accepted is the only one let in afterwards; any other device that connects (a
+phone paired with the CardputerZero for something else) is refused before it sees a key. To pair a
+different device, delete `~/.config/home-control/blehid.json`.
+
 ### Home Assistant
 
 Home Assistant cards (and the Announce card) need two files in `~/.config/home-control/`:
@@ -105,10 +124,17 @@ kept-alive connection.
 
 On the device, the stock image already has what the app needs: `python3` with `python3-pil` and
 `python3-numpy`, `ir-ctl` (v4l-utils), `pw-record` (PipeWire) and `openssl`; `sdptool` (BlueZ) only
-for the unfinished Bluetooth link. The desktop user must be in the `video` group that owns
+for the unfinished KDE Connect Bluetooth link. The desktop user must be in the `video` group that owns
 `/dev/lirc0`. Copy this folder to the device and run `sudo sh install.sh`: it stops with a message if
 any of those is missing, replaces the app's Python files in `/opt/cardputerzero-home-control`
 (removing any left from an older version) and adds the launcher tile.
+
+A Bluetooth card also needs `python3-dbus` and `python3-gi` (on the stock image) and Bluetooth in
+LE-only mode: `ControllerMode = le` under `[General]` in `/etc/bluetooth/main.conf`, then
+`sudo systemctl restart bluetooth`. With classic Bluetooth also on, Android pairs but never opens the
+keyboard (the card then says "Needs LE-only Bluetooth"). `install.sh` does not change that file: it
+turns classic Bluetooth off for everything on the device (Bluetooth audio, for one). To use another
+controller for the card, set `HC_HID_ADAPTER` (e.g. `hci1`).
 
 ### What is written where
 
@@ -117,6 +143,7 @@ The SD card is written only when something worth keeping changed:
 - `~/.config/home-control/settings.json` (last card, modes, Announce choices): a few seconds after
   the last change (or on exit, if a change is still waiting), and only when its content differs
   from what the file holds.
+- `~/.config/home-control/blehid.json`: the device paired with the Bluetooth card, once, when it is accepted.
 - `~/.config/home-control/kdeconnect/`: the Cardputer's KDE Connect identity (`device_id`,
   `cert.pem`, `key.pem`) once, on the first connect; `peers.json` when a device is paired and when its
   address (or Bluetooth channel) changes, not on every connect. Small files are written to a temp

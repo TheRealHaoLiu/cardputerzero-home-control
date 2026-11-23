@@ -645,7 +645,18 @@ class Client:
 
 class Gyro:
     """Air mouse: while running, turns the BMI270's angular rate into pointer moves (hold Space to steer)."""
-    DEV = os.environ.get("HC_GYRO_DEV", "/sys/bus/iio/devices/iio:device0")
+    DEV = os.environ.get("HC_GYRO_DEV")       # default: whichever IIO device has a gyroscope
+
+    @classmethod
+    def device(cls):
+        """The BMI270's IIO device. Its number is not fixed: it was iio:device0 on one boot and
+        iio:device1 on the next, behind the I/O expander."""
+        base = "/sys/bus/iio/devices"
+        try:
+            found = [d for d in sorted(os.listdir(base)) if os.path.exists(os.path.join(base, d, "in_anglvel_x_raw"))]
+        except OSError:
+            found = []
+        return cls.DEV or os.path.join(base, found[0] if found else "iio:device0")
 
     def __init__(self, send, cfg=None):
         cfg = cfg or {}
@@ -674,9 +685,11 @@ class Gyro:
 
     def _loop(self, done):
         try:
-            scale = float(open(os.path.join(self.DEV, "in_anglvel_scale")).read())
-            files = [open(os.path.join(self.DEV, f"in_anglvel_{a}_raw")) for a in self.axes]
+            dev = self.device()
+            scale = float(open(os.path.join(dev, "in_anglvel_scale")).read())
+            files = [open(os.path.join(dev, f"in_anglvel_{a}_raw")) for a in self.axes]
         except OSError:
+            self.run.clear()                  # no gyroscope: the card must not go on saying "Steering"
             return
         fx = fy = 0.0
         period = 1.0 / self.hz

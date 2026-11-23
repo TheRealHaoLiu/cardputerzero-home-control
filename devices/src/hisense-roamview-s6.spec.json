@@ -2,117 +2,251 @@
  "id": "hisense-roamview-s6",
  "name": "RoamView S6",
  "icon": "tablet",
- "backend": "kdeconnect",
- "pages": [
-  {
-   "q": {
-    "id": "power",
-    "label": "PWR",
-    "symbol": "◉",
-    "group": "pwr"
-   },
-   "w": {
-    "id": "vol_up",
-    "label": "VOL",
-    "symbol": "▲",
-    "group": "heat",
-    "vol": 10
-   },
-   "e": {
-    "id": "prev",
-    "label": "PREV",
-    "symbol": "◀◀",
-    "group": "cool",
-    "mpris": "Previous"
-   },
-   "r": {
-    "id": "play",
-    "label": "PLAY",
-    "symbol": "▶‖",
-    "group": "cool",
-    "mpris": "PlayPause"
-   },
-   "t": {
-    "id": "next",
-    "label": "NEXT",
-    "symbol": "▶▶",
-    "group": "cool",
-    "mpris": "Next"
-   },
-   "u": {
-    "id": "home",
-    "label": "HOME",
-    "symbol": "⌂",
-    "group": "mode",
-    "kde": {
-     "middleclick": true
+ "modes": {
+  "bt": {
+   "label": "Bluetooth",
+   "backend": "blehid",
+   "pages": [
+    {
+     "q": {
+      "id": "power",
+      "label": "PWR",
+      "symbol": "◉",
+      "group": "pwr"
+     },
+     "w": {
+      "id": "vol_up",
+      "label": "VOL",
+      "symbol": "▲",
+      "group": "heat",
+      "hid": "vol_up"
+     },
+     "e": {
+      "id": "prev",
+      "label": "PREV",
+      "symbol": "◀◀",
+      "group": "cool",
+      "hid": "prev"
+     },
+     "r": {
+      "id": "play",
+      "label": "PLAY",
+      "symbol": "▶‖",
+      "group": "cool",
+      "hid": "play"
+     },
+     "t": {
+      "id": "next",
+      "label": "NEXT",
+      "symbol": "▶▶",
+      "group": "cool",
+      "hid": "next"
+     },
+     "y": {
+      "id": "recents",
+      "label": "RECNT",
+      "symbol": "▤",
+      "group": "mode",
+      "hid": "recents"
+     },
+     "a": {
+      "id": "mute",
+      "label": "MUTE",
+      "symbol": "✕",
+      "group": "heat",
+      "hid": "mute"
+     },
+     "s": {
+      "id": "vol_down",
+      "label": "VOL",
+      "symbol": "▼",
+      "group": "heat",
+      "hid": "vol_down"
+     },
+     "d": {
+      "id": "escape",
+      "label": "ESC",
+      "symbol": "↖",
+      "group": "mode",
+      "hid": "esc"
+     }
+    }
+   ],
+   "fixed": {
+    "u": {
+     "id": "home",
+     "label": "HOME",
+     "symbol": "⌂",
+     "group": "mode",
+     "hid": "home"
+    },
+    "i": {
+     "id": "up",
+     "label": "UP",
+     "symbol": "▲",
+     "group": "flow",
+     "hid": "up"
+    },
+    "o": {
+     "id": "back",
+     "label": "BACK",
+     "symbol": "↶",
+     "group": "mode",
+     "hid": "back"
+    },
+    "j": {
+     "id": "left",
+     "label": "LEFT",
+     "symbol": "◀",
+     "group": "flow",
+     "hid": "left"
+    },
+    "k": {
+     "id": "down",
+     "label": "DOWN",
+     "symbol": "▼",
+     "group": "flow",
+     "hid": "down"
+    },
+    "l": {
+     "id": "right",
+     "label": "RIGHT",
+     "symbol": "▶",
+     "group": "flow",
+     "hid": "right"
     }
    },
-   "i": {
-    "id": "scroll_up",
-    "label": "SCRL",
-    "symbol": "▲",
-    "group": "flow",
-    "kde": {
-     "scroll": true,
-     "dx": 0,
-     "dy": -500
-    }
-   },
-   "o": {
-    "id": "back",
-    "label": "BACK",
-    "symbol": "↶",
-    "group": "mode",
-    "kde": {
-     "backclick": true
-    }
-   },
-   "s": {
-    "id": "vol_down",
-    "label": "VOL",
-    "symbol": "▼",
-    "group": "heat",
-    "vol": -10
-   },
-   "j": {
-    "id": "recents",
-    "label": "RECNT",
-    "symbol": "▤",
-    "group": "mode",
-    "kde": {
-     "doubleclick": true
-    }
-   },
-   "k": {
-    "id": "scroll_down",
-    "label": "SCRL",
-    "symbol": "▼",
-    "group": "flow",
-    "kde": {
-     "scroll": true,
-     "dx": 0,
-     "dy": 500
-    }
-   }
+   "hint": "SPACE steer pointer\nENTER select / click\n0: keyboard",
+   "keyboard": "blehid"
   },
-  {
-   "q": {
-    "id": "yt_music",
-    "label": "MUSIC",
-    "symbol": "♫",
-    "group": "fan",
-    "url": "https://music.youtube.com"
+  "wifi": {
+   "label": "Wi-Fi",
+   "backend": "kdeconnect",
+   "pages": [
+    {
+     "q": {
+      "id": "power",
+      "label": "PWR",
+      "symbol": "◉",
+      "group": "pwr"
+     },
+     "w": {
+      "id": "vol_up",
+      "label": "VOL",
+      "symbol": "▲",
+      "group": "heat",
+      "vol": 10
+     },
+     "e": {
+      "id": "prev",
+      "label": "PREV",
+      "symbol": "◀◀",
+      "group": "cool",
+      "mpris": "Previous"
+     },
+     "r": {
+      "id": "play",
+      "label": "PLAY",
+      "symbol": "▶‖",
+      "group": "cool",
+      "mpris": "PlayPause"
+     },
+     "t": {
+      "id": "next",
+      "label": "NEXT",
+      "symbol": "▶▶",
+      "group": "cool",
+      "mpris": "Next"
+     },
+     "u": {
+      "id": "home",
+      "label": "HOME",
+      "symbol": "⌂",
+      "group": "mode",
+      "kde": {
+       "middleclick": true
+      }
+     },
+     "i": {
+      "id": "scroll_up",
+      "label": "SCRL",
+      "symbol": "▲",
+      "group": "flow",
+      "kde": {
+       "scroll": true,
+       "dx": 0,
+       "dy": -500
+      }
+     },
+     "o": {
+      "id": "back",
+      "label": "BACK",
+      "symbol": "↶",
+      "group": "mode",
+      "kde": {
+       "backclick": true
+      }
+     },
+     "s": {
+      "id": "vol_down",
+      "label": "VOL",
+      "symbol": "▼",
+      "group": "heat",
+      "vol": -10
+     },
+     "j": {
+      "id": "recents",
+      "label": "RECNT",
+      "symbol": "▤",
+      "group": "mode",
+      "kde": {
+       "doubleclick": true
+      }
+     },
+     "k": {
+      "id": "scroll_down",
+      "label": "SCRL",
+      "symbol": "▼",
+      "group": "flow",
+      "kde": {
+       "scroll": true,
+       "dx": 0,
+       "dy": 500
+      }
+     }
+    },
+    {
+     "q": {
+      "id": "yt_music",
+      "label": "MUSIC",
+      "symbol": "♫",
+      "group": "fan",
+      "url": "https://music.youtube.com"
+     },
+     "w": {
+      "id": "youtube",
+      "label": "YT",
+      "symbol": "▶",
+      "group": "fan",
+      "url": "https://www.youtube.com"
+     }
+    }
+   ],
+   "fixed": {
+    "enter": {
+     "id": "ok",
+     "label": "TAP",
+     "symbol": "●",
+     "group": "cool",
+     "kde": {
+      "singleclick": true
+     }
+    }
    },
-   "w": {
-    "id": "youtube",
-    "label": "YT",
-    "symbol": "▶",
-    "group": "fan",
-    "url": "https://www.youtube.com"
-   }
+   "hint": "SPACE steer, ENTER tap\nhold ENTER: long press\n0 or Fn+ENTER: type",
+   "keyboard": "kdeconnect"
   }
- ],
+ },
  "code_sets": {
   "A": {
    "file": "captures/hisense-roamview-s6.ir",
@@ -122,18 +256,5 @@
    }
   }
  },
- "todo": "Links on page 2 are placeholders; a house card can replace them with its own.",
- "fixed": {
-  "enter": {
-   "id": "ok",
-   "label": "TAP",
-   "symbol": "●",
-   "group": "cool",
-   "kde": {
-    "singleclick": true
-   }
-  }
- },
- "hint": "SPACE steer, ENTER tap\nhold ENTER: long press\n0 or Fn+ENTER: type",
- "keyboard": "kdeconnect"
+ "todo": "Links on page 2 are placeholders; a house card can replace them with its own."
 }

@@ -75,9 +75,11 @@ def main():
     spec_path, out_path = sys.argv[1], sys.argv[2]
     spec = json.load(open(spec_path))
     base = os.path.dirname(os.path.abspath(spec_path))
-    pages = spec.get("pages") or [spec["layout"]]
+    # A card with "modes" (e.g. Bluetooth and Wi-Fi) has its pages inside each mode; the code sets are shared.
+    faces = list(spec["modes"].values()) if spec.get("modes") else [spec]
+    pages = [p for f in faces for p in (f.get("pages") or [f["layout"]])]
     fixed = spec.get("fixed", {})   # shown on every page (e.g. home, back, arrows)
-    buttons = {b["id"] for page in pages + [fixed] for b in page.values()}
+    buttons = {b["id"] for page in pages + [f.get("fixed", {}) for f in faces] for b in page.values()}
     sets = {}
     for name, cs in spec["code_sets"].items():
         entries = read_flipper(os.path.join(base, cs["file"]))
@@ -96,8 +98,11 @@ def main():
             print(f"code set {name}: no signal for {', '.join(missing)}")
         sets[name] = {"source": cs["source"],
                       "signals": {b: entries[cs["map"][b]] for b in sorted(buttons) if b not in missing}}
-    device = {k: spec[k] for k in ("id", "name", "icon", "backend")}
-    device["pages"] = pages
+    device = {k: spec[k] for k in ("id", "name", "icon", "backend") if k in spec}
+    if spec.get("modes"):
+        device["modes"] = spec["modes"]
+    else:
+        device["pages"] = pages
     if fixed:
         device["fixed"] = fixed
     if spec.get("model"):
