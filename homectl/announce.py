@@ -44,7 +44,8 @@ try:
 except OSError:
     _LIBC = None
 ALARM_KEY = "l"          # the bottom-right key of the grid, labelled on screen
-VOL_DOWN, VOL_UP = "a", "s"   # announcement volume, 10 % steps
+VOL_DOWN, VOL_UP = "a", "s"   # announcement volume, 10 % steps: left is less, like the bar beside them
+VOL_CODES = {105: -10, 106: 10, 114: -10, 115: 10}   # the keyboard's own left / right and volume keys too
 VOL_DEFAULT = 50              # a moderate start, so a first announcement is not a surprise
 
 
@@ -415,8 +416,8 @@ class Announce:
             if letter == ALARM_KEY and down:
                 self.alarm_down = now; self.mode = "alarm_hold"; app.dirty = True
                 return True
-            if letter in (VOL_DOWN, VOL_UP) and down:
-                self.set_volume(dev, self.volume(dev) + (10 if letter == VOL_UP else -10))
+            if (letter in (VOL_DOWN, VOL_UP) or code in VOL_CODES) and down:
+                self.set_volume(dev, self.volume(dev) + VOL_CODES.get(code, 10 if letter == VOL_UP else -10))
                 return True
             if letter and down:
                 i = "qwertyuio".find(letter)
@@ -591,8 +592,8 @@ class Announce:
                      {"id": "alarm", "label": "ALARM", "symbol": "⚠", "group": "pwr"})
         y = 25 + ch + 3
         vol = self.volume(dev)
-        app.key_cell(d, 2, y, cw, ch, VOL_DOWN, {"id": "vol_down", "label": "VOL", "symbol": "\u25bc", "group": "heat"})
-        app.key_cell(d, 2 + cw + gap, y, cw, ch, VOL_UP, {"id": "vol_up", "label": "VOL", "symbol": "\u25b2", "group": "heat"})
+        app.key_cell(d, 2, y, cw, ch, VOL_DOWN, {"id": "vol_down", "label": "VOL", "symbol": "\u25c0", "group": "heat"})
+        app.key_cell(d, 2 + cw + gap, y, cw, ch, VOL_UP, {"id": "vol_up", "label": "VOL", "symbol": "\u25b6", "group": "heat"})
         x = 2 + 2 * (cw + gap) + 6
         d.text((x, y + 4), f"Volume {vol}%", font=F_TITLE, fill=TXT)
         bw = 2 + 6 * (cw + gap) - x - 8   # a bar in tenths

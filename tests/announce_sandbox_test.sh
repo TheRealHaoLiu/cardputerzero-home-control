@@ -22,6 +22,8 @@ shot pick-all
 key 17;                 shot beam-off             # W toggles BEAM off
 key 31; key 31;         shot vol-70               # S twice: volume 50 -> 70
 key 30;                 shot vol-60               # A: 70 -> 60
+key 106;                shot vol-70-right         # the keyboard's right arrow: 60 -> 70
+key 105;                shot vol-60-left          # ... and left: 70 -> 60
 put "57 1"; sleep 1.2;  shot recording            # hold SPACE
 put "57 0"; sleep 0.6;  shot confirm
 key 28 1.0;             shot sent                 # ENTER: send (logged only)
