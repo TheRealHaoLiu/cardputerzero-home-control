@@ -422,6 +422,12 @@ class App:
             self.say("No keyboard on this card", 1.5)
 
     def type_key(self, code, down):
+        if code == hw.ENTER and self.fn:           # Fn+Enter opened the keyboard and closes it again
+            if down:
+                if self.dev.get("keyboard") == "blehid":
+                    self.hid.release()
+                self.typing, self.dirty = None, True
+            return
         if self.dev.get("keyboard") == "blehid":   # a Bluetooth keyboard: every key goes straight to the device
             if code != hw.ESC:
                 self.hid.evkey(code, down)
@@ -475,7 +481,7 @@ class App:
             d.text((20, 36), "Bluetooth keyboard", font=F_TITLE, fill=TXT)
             d.text((20, 66), "Every key goes to the device as it is", font=F_SMALL, fill=TXT)
             d.text((20, 82), "pressed: letters, SHIFT, ENTER, arrows.", font=F_SMALL, fill=TXT)
-            d.text((20, 114), "ESC close", font=F_SMALL, fill=MUTED)
+            d.text((20, 114), "Fn+ENTER or ESC close", font=F_SMALL, fill=MUTED)
             return
         d.text((20, 36), "Type to the TV", font=F_TITLE, fill=TXT)
         t = self.typing
@@ -484,7 +490,7 @@ class App:
         d.rounded_rectangle((18, 62, hw.W - 18, 90), radius=4, fill=BG)
         d.text((24, 66), t + "\u258f", font=F_TITLE, fill=TXT)
         d.text((20, 98), "ENTER send   (empty ENTER = TV Enter)", font=F_SMALL, fill=MUTED)
-        d.text((20, 114), "BACKSPACE delete   ESC close", font=F_SMALL, fill=MUTED)
+        d.text((20, 114), "BACKSPACE delete   Fn+ENTER or ESC close", font=F_SMALL, fill=MUTED)
 
     def _start_check(self, d):
         """At app start: if the start mode's device is unreachable, drop to the fallback mode. The only

@@ -116,7 +116,7 @@
      "hid": "right"
     }
    },
-   "hint": "SPACE steer pointer\nENTER select / click\n0: keyboard",
+   "hint": "SPACE steer pointer\nENTER select / click\nFn+ENTER: keyboard",
    "keyboard": "blehid"
   },
   "wifi": {

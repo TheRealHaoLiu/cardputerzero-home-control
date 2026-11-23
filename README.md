@@ -22,7 +22,7 @@ On a card:
 | 5 / 6 | previous / next card |
 | 7 / 8 | page up / down |
 | 9 | switch modes on cards that have several (Wi-Fi / IR, or Bluetooth / Wi-Fi); the icon over 9 shows how every card talks |
-| 0 or Fn+ENTER | keyboard mode on cards that can type (type a line, ENTER sends it) |
+| 0 or Fn+ENTER | keyboard mode on cards that can type (type a line, ENTER sends it); Fn+ENTER again or ESC closes it |
 | Fn arrows, volume, mute, play, next/prev, home | the matching button on any card, on any page |
 | hold a dimmer's key | a brightness panel: F / X or Z / C change it |
 | ESC | back to the device menu; hold one second to leave |
@@ -34,7 +34,7 @@ ENTER taps, holding ENTER is a long press.
 
 On a Bluetooth card (the CardputerZero as the device's own keyboard, gamepad and mouse): keys are
 held, not tapped, so a held arrow repeats on the device. ENTER selects. 0 or Fn+ENTER turns the whole
-keyboard into the device's keyboard until ESC. Hold SPACE to steer the pointer; while steering, up /
+keyboard into the device's keyboard until Fn+ENTER or ESC. Hold SPACE to steer the pointer; while steering, up /
 down turn the wheel. ENTER follows what was used last: after the pointer it clicks where the pointer
 is, after an arrow it opens what has the focus.
 
