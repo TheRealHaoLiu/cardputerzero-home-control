@@ -32,7 +32,7 @@ key 35; key 23; key 28 1.6; shot typed            # "hi", ENTER
 put "57 1"; sleep 0.5; key 1 0.4; put "57 0"; sleep 0.4; shot cancelled   # ESC while listening
 key 14 0.4;             shot new-conversation     # BACKSPACE
 key 5 0.5;              shot carousel             # 4: the device list
-put "1 1"; sleep 1.5; put "1 0"; sleep 0.5
+put "1 1"; sleep 1.2; shot esc-hint; sleep 2.6; put "1 0"; sleep 0.5   # hold ESC: the hint, then out at 3 s
 kill -0 $APP 2>/dev/null && echo "FAIL: still running after ESC hold" || echo "ok: exited on ESC hold"
 echo "--- what would have gone to Home Assistant"; cat "$OUT/ha.log"
 echo "--- settings"; cat "$XDG_CONFIG_HOME/home-control/settings.json"; echo

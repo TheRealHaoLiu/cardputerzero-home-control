@@ -25,7 +25,7 @@ On a card:
 | 0 or Fn+ENTER | keyboard mode on cards that can type (type a line, ENTER sends it); Fn+ENTER again or ESC closes it |
 | Fn arrows, volume, mute, play, next/prev, home | the matching button on any card, on any page |
 | hold a dimmer's key | a brightness panel: F / X or Z / C change it |
-| ESC | back to the device menu; hold one second to leave |
+| ESC | back to the device menu; hold three seconds to leave (a hint and a countdown show after half a second, as in M5Stack's own apps) |
 
 On the device menu: 3, 4, 5 or Z go left; 7, 8, 9 or C go right; 6 or ENTER opens the card.
 

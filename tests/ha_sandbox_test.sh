@@ -25,7 +25,7 @@ key 16 0.5                           # ring again ...
 key 1 0.5;   shot stopped-by-esc     # ... ESC stops it and stays on the card
 sleep 2.5
 key 8 1.0;   shot refreshed          # 7: Refresh (asks HA again)
-put "1 1"; sleep 1.5; put "1 0"; sleep 0.5
+put "1 1"; sleep 1.2; shot esc-hint; sleep 2.6; put "1 0"; sleep 0.5   # hold ESC: the hint, then out at 3 s
 kill -0 $APP 2>/dev/null && echo "FAIL: still running after ESC hold" || echo "ok: exited on ESC hold"
 echo "--- what would have gone to Home Assistant"; cat "$OUT/ha.log"
 echo "--- errors"; cat "$OUT/app.err"

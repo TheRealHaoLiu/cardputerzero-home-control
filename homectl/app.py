@@ -21,7 +21,8 @@ DEVICES = os.environ.get("HC_DEVICES", os.path.join(HERE, "devices"))
 CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "home-control")
 USER_DEVICES = os.path.join(CONFIG, "devices")   # this house's own devices (addresses etc.), kept out of the repo
 FONT_DIR = "/usr/share/fonts/truetype/dejavu/"
-EXIT_HOLD = 1.0   # seconds of ESC to leave, as in M5Stack's own apps
+EXIT_HOLD = 3.0   # seconds of ESC to leave, as in M5Stack's own apps (the launcher ends an app held that long anyway)
+EXIT_HINT = 0.5   # ... and from here on the hold shows a hint and a countdown; a shorter press is a tap
 STATUS_EVERY = 60  # seconds between status reads on a Home Assistant card (only while it is shown)
 SAVE_DELAY = 3.0  # seconds after the last settings change before it is written to the SD card
 LIT_FOR = 0.35    # seconds a key stays lit after its signal went out
@@ -1094,7 +1095,7 @@ class App:
         if not self.devices:
             self.header(d, "Home Control", "")
             d.text((12, 60), "No devices installed.", font=F_TITLE, fill=TXT)
-            self.soft_keys(d, [("", "hold ESC quit", True)]); return
+            self.soft_keys(d, [("", "hold ESC 3 s: quit", True)]); return
         dev = self.dev
         self.header(d, "Home Control", "")
         d.rounded_rectangle((60, 28, hw.W - 60, hw.H - 28), radius=10, fill=PANEL)
@@ -1119,6 +1120,15 @@ class App:
         img = Image.new("RGB", (hw.W, hw.H), BG)
         d = ImageDraw.Draw(img)
         (self.draw_remote if self.view == "remote" and self.dev else self.draw_carousel)(d)
+        held = time.monotonic() - self.esc_down if self.esc_down is not None else 0
+        if held >= EXIT_HINT:      # over everything, like the launcher's own "Hold ESC 3s to return home"
+            box = (50, 104, hw.W - 50, 144)
+            d.rounded_rectangle(box, radius=8, fill=PANEL, outline=TXT, width=1)
+            text = f"Hold ESC to return home  {max(0.0, EXIT_HOLD - held):.1f} s"
+            d.text(((hw.W - d.textlength(text, font=F_WORD)) / 2, box[1] + 7), text, font=F_WORD, fill=TXT)
+            x0, x1, y = box[0] + 12, box[2] - 12, box[1] + 26
+            d.rounded_rectangle((x0, y, x1, y + 6), radius=3, fill=DIM)
+            d.rounded_rectangle((x0, y, x0 + max(6, (x1 - x0) * min(1.0, held / EXIT_HOLD)), y + 6), radius=3, fill=(240, 140, 40))
         self.frame = img
         self.screen.show(np.asarray(img))
 
@@ -1158,8 +1168,9 @@ class App:
             if down:
                 self.esc_down = time.monotonic()
             else:
-                held = self.esc_down is not None and time.monotonic() - self.esc_down >= EXIT_HOLD
-                self.esc_down = None
+                # Let go once the hint was up: a hold called off, not a tap, so it does not also go back
+                held = self.esc_down is not None and time.monotonic() - self.esc_down >= EXIT_HINT
+                self.esc_down, self.dirty = None, True
                 if not held and self.ringing:          # first ESC stops a repeating button, stays on the card
                     self.stop_ha(); self.say("Stopped")
                 elif not held and self.view == "remote":
@@ -1244,7 +1255,9 @@ class App:
             return 0.0
         due = [t for t in self.lit.values() if t is not None]
         due += [self.note_until if self.note else None, self.save_due,
-                self.esc_down + EXIT_HOLD if self.esc_down is not None else None,
+                # ESC held: the hint appears, then its countdown is redrawn ten times a second
+                None if self.esc_down is None else
+                self.esc_down + EXIT_HINT if now < self.esc_down + EXIT_HINT else now + 0.1,
                 self.enter_down + HOLD_DIM if self.enter_down is not None and not self.enter_held else None,
                 self.hold[2] + HOLD_DIM if self.hold else None]
         if self.own:
@@ -1263,6 +1276,8 @@ class App:
                 now = time.monotonic()
                 if self.esc_down is not None and now - self.esc_down >= EXIT_HOLD:
                     break
+                if self.esc_down is not None and now - self.esc_down >= EXIT_HINT:
+                    self.dirty = True
                 if self.own:
                     self.own.tick()
                 if self.enter_down is not None and not self.enter_held and now - self.enter_down >= HOLD_DIM:

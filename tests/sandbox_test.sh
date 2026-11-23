@@ -24,7 +24,7 @@ key 9 0.5;              shot page-down          # 8: page down (greyed unless th
 key 5 0.5;              shot carousel           # 4: device list
 key 28 0.5;             shot remote-again       # ENTER opens
 key 1 0.5;              shot carousel-esc       # short ESC: back to the list
-put "1 1"; sleep 1.5; put "1 0"; sleep 0.5
+put "1 1"; sleep 1.2; shot esc-hint; sleep 2.6; put "1 0"; sleep 0.5   # hold ESC: the hint, then out at 3 s
 kill -0 $APP 2>/dev/null && echo "FAIL: still running after ESC hold" || echo "ok: exited on ESC hold"
 echo "--- ir log (expect 12 lines: the 12 Dyson buttons)"; cat "$OUT/ir.log"
 echo "--- settings"; cat "$XDG_CONFIG_HOME/home-control/settings.json"; echo

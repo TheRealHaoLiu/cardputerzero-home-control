@@ -36,7 +36,7 @@ sleep 2.2; put "38 0"; sleep 0.3; shot alarm-confirm
 key 28 0.8;             shot alarm-on             # ENTER: alarm (logged only)
 key 1 0.8;              shot alarm-stopped        # ESC: stop (logged only)
 put "38 1"; sleep 3.5; put "38 0"; key 30 0.5; shot alarm-declined   # confirm shown, A = no
-put "1 1"; sleep 1.5; put "1 0"; sleep 0.5
+put "1 1"; sleep 1.2; shot esc-hint; sleep 2.6; put "1 0"; sleep 0.5   # hold ESC: the hint, then out at 3 s
 kill -0 $APP 2>/dev/null && echo "FAIL: still running after ESC hold" || echo "ok: exited on ESC hold"
 echo "--- what would have gone to Home Assistant"; cat "$OUT/ha.log"
 echo "--- errors"; cat "$OUT/app.err"
