@@ -68,6 +68,13 @@ replaces it (e.g. the same TV with a Wi-Fi mode added). Card types (`backend`):
   `vol_up`, `vol_down`, `mute`, `play`, `next`, `prev`, `menu`. The link is up only while the card is
   open. See Pairing below, and Install for what Bluetooth needs.
 - `announce`: record a voice clip and play it on speakers through Home Assistant.
+- `assist`: a voice assistant (`homectl/assist.py`): hold SPACE, ask, let go, and one of Home
+  Assistant's Assist pipelines (Settings > Voice assistants) answers on screen and through the
+  CardputerZero's speaker. All the speech work and the thinking are Home Assistant's. Key 7 picks the
+  pipeline (`"pipeline": "<name>"` in the card sets the first choice, else Home Assistant's preferred
+  one), 8 turns spoken answers off and on, left / right set their volume, F / X or up / down scroll,
+  BACKSPACE starts a new conversation, Fn+ENTER types the question instead. While an answer is spoken,
+  SPACE cuts in with the next question and ESC quiets it; ESC also gives up on a slow answer.
 - `modes`: one card, several of the above (e.g. `wifi` and `ir`), switched with key 9.
   `start_mode` / `start_fallback`: start in Wi-Fi each time and drop to IR if HA cannot reach it.
 
@@ -86,7 +93,8 @@ a band labelled with the room; the optional `room_names` gives the dimmer panel 
 ```
 
 `tests/announce-sample.json` and `tests/ha-sample.json` are neutral examples of an Announce card (its
-speakers and the alarm clip's URL) and of a discovered Find card.
+speakers and the alarm clip's URL) and of a discovered Find card; `tests/assist-sample.json` is all an
+Assistant card needs.
 
 ### Pairing (KDE Connect)
 
@@ -109,7 +117,7 @@ different device, delete `~/.config/home-control/blehid.json`.
 
 ### Home Assistant
 
-Home Assistant cards (and the Announce card) need two files in `~/.config/home-control/`:
+Home Assistant cards (and the Announce and Assistant cards) need two files in `~/.config/home-control/`:
 
 - `ha.json`: `{"url": "https://homeassistant.example:8123"}`. `https://` is checked against the
   system's CA certificates; plain `http://` also works, on a network you trust. No secrets here.
@@ -118,7 +126,8 @@ Home Assistant cards (and the Announce card) need two files in `~/.config/home-c
 
 Both are read once when first needed and kept while the app runs; the token is read again after Home
 Assistant turns it down (HTTP 401/403), so after replacing the token the next call uses it. All calls share one
-kept-alive connection.
+kept-alive connection. The Assistant card opens one more per question: Assist pipelines are only on
+Home Assistant's WebSocket API.
 
 ## Install
 
@@ -140,7 +149,7 @@ controller for the card, set `HC_HID_ADAPTER` (e.g. `hci1`).
 
 The SD card is written only when something worth keeping changed:
 
-- `~/.config/home-control/settings.json` (last card, modes, Announce choices): a few seconds after
+- `~/.config/home-control/settings.json` (last card, modes, Announce and Assistant choices): a few seconds after
   the last change (or on exit, if a change is still waiting), and only when its content differs
   from what the file holds.
 - `~/.config/home-control/blehid.json`: the device paired with the Bluetooth card, once, when it is accepted.
@@ -150,8 +159,9 @@ The SD card is written only when something worth keeping changed:
   file, synced and renamed, so a power cut leaves the old or the new one.
 
 Everything else lives in RAM, in `$XDG_RUNTIME_DIR` (else `/run/user/<uid>`, else `/dev/shm`): the
-Announce recording while it is made, IR timings while they are sent, screenshots, and the log,
-`home-control.log`. The log holds errors and the Announce card's steps; repeated failures are logged
+Announce or Assistant recording while it is made, a spoken answer while it plays, IR timings while
+they are sent, screenshots, and the log, `home-control.log`. The log holds errors, the Announce card's
+steps and how long each Assistant turn took (never the words); repeated failures are logged
 once with a count; it is cut to its last 200 lines at start when over 64 KB, and emptied by the app
 when it passes 256 KB.
 
@@ -165,6 +175,7 @@ person to read. Each drives the app with a fake screen, a key FIFO and a log, an
 - `tests/announce_sandbox_test.sh`: the Announce card; every HA call faked (`HC_HA_FAKE=1`), a tone
   for a microphone (`HC_FAKE_MIC=1`).
 - `tests/ha_sandbox_test.sh`: a discovered Find card; HA faked.
+- `tests/assist_sandbox_test.sh`: the Assistant card; turns answered by the app itself, no sound.
 
 `HC_FAKE_UNAVAILABLE=<entity>` makes the fake HA report that entity unreachable.
 

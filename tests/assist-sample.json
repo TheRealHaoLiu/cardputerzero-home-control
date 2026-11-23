@@ -1,0 +1,6 @@
+{
+ "id": "assist",
+ "name": "Assistant",
+ "icon": "mic",
+ "backend": "assist"
+}

@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from . import hw
 from .announce import Announce, ha_call, ha_error
+from .assist import Assist
 from .blehid import Hid
 from .kdeconnect import Client as KdcClient, Gyro, write_atomic
 
@@ -76,6 +77,7 @@ F_TITLE = font("DejaVuSans-Bold.ttf", 13)
 F_SMALL = font("DejaVuSansCondensed.ttf", 10)
 F_SOFT = font("DejaVuSansCondensed-Bold.ttf", 10)
 F_BIG = font("DejaVuSans-Bold.ttf", 18)
+F_TEXT = font("DejaVuSans.ttf", 12)   # running text (the Assistant card's conversation)
 try:   # song titles: a font with Latin and Chinese (index 2 = Simplified Chinese shapes)
     F_SONG = ImageFont.truetype("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 10, index=2)
 except OSError:
@@ -135,6 +137,12 @@ def draw_icon(d, kind, box, colour=(200, 200, 210)):
         d.polygon([(x0 + w * 0.1, y0 + h * 0.38), (x0 + w * 0.35, y0 + h * 0.38), (x1 - w * 0.2, y0 + h * 0.1),
                    (x1 - w * 0.2, y1 - h * 0.1), (x0 + w * 0.35, y1 - h * 0.38), (x0 + w * 0.1, y1 - h * 0.38)], outline=colour, width=lw)
         d.arc((x1 - w * 0.25, y0 + h * 0.3, x1, y1 - h * 0.3), start=-60, end=60, fill=colour, width=lw)
+    elif kind == "mic":  # a microphone on its stand
+        lw = max(2, w // 12)
+        d.rounded_rectangle((x0 + w * 0.36, y0, x1 - w * 0.36, y0 + h * 0.58), radius=max(2, int(w * 0.14)), outline=colour, width=lw)
+        d.arc((x0 + w * 0.2, y0 + h * 0.2, x1 - w * 0.2, y0 + h * 0.76), start=0, end=180, fill=colour, width=lw)
+        d.line((x0 + w / 2, y0 + h * 0.76, x0 + w / 2, y1 - lw / 2), fill=colour, width=lw)
+        d.line((x0 + w * 0.32, y1 - lw / 2, x1 - w * 0.32, y1 - lw / 2), fill=colour, width=lw)
     elif kind == "pc":  # a tower
         lw = max(2, w // 12)
         d.rounded_rectangle((x0 + w * 0.25, y0, x1 - w * 0.25, y1), radius=max(2, w // 10), outline=colour, width=lw)
@@ -179,6 +187,7 @@ class App:
         self.running, self.dirty, self.frame = True, True, None
         self.lock = threading.Lock()
         self.ann = Announce(self)   # the Announce card's own state (recording, confirm, alarm)
+        self.assist = Assist(self)  # the Assistant card's (the conversation, the turn in progress)
         self.ringing = {}           # Home Assistant buttons that repeat: letter -> threading.Event that stops them
         self.status = {}            # device id -> (text, when fetched) for a Home Assistant card's header
         self.states = {}            # device id -> "busy" | "again" | "done": its keys' ON / off (one read at a time)
@@ -242,6 +251,14 @@ class App:
             view.update(d["modes"][m])
             self._mode_view[key] = view
         return self._mode_view[key]
+
+    @property
+    def own(self):
+        """The card shown, when it is one that draws its own screen and takes its own keys (Announce,
+        Assistant); else None."""
+        if self.view != "remote" or not self.dev:
+            return None
+        return {"announce": self.ann, "assist": self.assist}.get(self.dev.get("backend"))
 
     def mode_of(self, d):
         """The card's mode: the last one used (remembered), else the first listed."""
@@ -414,7 +431,7 @@ class App:
             d.text((28, 60 + i * 16), line, font=F_SMALL, fill=TXT)
 
     def open_keyboard(self):
-        if self.dev.get("keyboard"):
+        if self.dev.get("keyboard") or self.dev.get("backend") == "assist":   # the Assistant takes typed questions
             self.stop_ha(); self.typing, self.shift, self.dirty = "", False, True
         elif self.raw_dev.get("modes"):
             self.say("Keyboard needs Wi-Fi (9)", 2)
@@ -453,6 +470,11 @@ class App:
             return
         if code == hw.ENTER:
             text = self.typing
+            if self.dev.get("backend") == "assist":       # a typed question: the panel closes so the answer shows
+                self.typing, self.dirty = None, True
+                if text.strip():
+                    self.assist.ask(text.strip())
+                return
             self.typing = ""
             cmd = f"text:{text}" if text else "ENTER"   # an empty line presses the TV's Enter (submit)
             ent = self.dev.get("keyboard")
@@ -483,13 +505,14 @@ class App:
             d.text((20, 82), "pressed: letters, SHIFT, ENTER, arrows.", font=F_SMALL, fill=TXT)
             d.text((20, 114), "Fn+ENTER or ESC close", font=F_SMALL, fill=MUTED)
             return
-        d.text((20, 36), "Type to the TV", font=F_TITLE, fill=TXT)
+        asking = self.dev.get("backend") == "assist"
+        d.text((20, 36), "Type your question" if asking else "Type to the TV", font=F_TITLE, fill=TXT)
         t = self.typing
         while t and d.textlength(t + "\u258f", font=F_TITLE) > hw.W - 40:
             t = t[1:]                                  # keep the end of a long line in view
         d.rounded_rectangle((18, 62, hw.W - 18, 90), radius=4, fill=BG)
         d.text((24, 66), t + "\u258f", font=F_TITLE, fill=TXT)
-        d.text((20, 98), "ENTER send   (empty ENTER = TV Enter)", font=F_SMALL, fill=MUTED)
+        d.text((20, 98), "ENTER ask" if asking else "ENTER send   (empty ENTER = TV Enter)", font=F_SMALL, fill=MUTED)
         d.text((20, 114), "BACKSPACE delete   Fn+ENTER or ESC close", font=F_SMALL, fill=MUTED)
 
     def _start_check(self, d):
@@ -656,7 +679,7 @@ class App:
         """The keyboard's own Fn keys (arrows, volume, media, home) press the matching button on any remote
         card, on any page. True when the key was one of them."""
         ids = NATIVE_KEYS.get(code)
-        if not ids or self.view != "remote" or not self.dev or self.dev.get("backend") == "announce":
+        if not ids or self.view != "remote" or not self.dev or self.own:
             return False
         for bid in ids:            # first id the card has wins (e.g. NEXT: "next", else fast-forward)
             if self.press_id(bid):
@@ -667,6 +690,7 @@ class App:
         """Things a card holds open only while it is shown (e.g. the KDE Connect link, the microphone)."""
         self.close_links()
         self.ann.leave()
+        self.assist.leave()
 
     def stop_ha(self, letter=None):
         """Stop repeating Home Assistant buttons (all of them, or one)."""
@@ -914,9 +938,9 @@ class App:
         """What each of keys 4-8 does on the current screen: {key: (label, enabled)}.
         The order: 4 device list, 5/6 previous/next device, 7/8 page up/down."""
         many = len(self.devices) > 1
-        if self.view == "remote" and self.dev and self.dev.get("backend") == "announce":
+        if self.own:
             self.page_count = ""
-            return self.ann.soft_state()
+            return self.own.soft_state()
         if self.view == "remote" and self.dev:
             np_ = len(self.visible_pages(self.dev))
             pg = self.page.get(self.dev["id"], 0) % np_ + 1
@@ -959,9 +983,11 @@ class App:
 
     def draw_remote(self, d):
         dev = self.dev
-        if dev.get("backend") == "announce":
-            self.ann.draw(d)
+        if self.own:
+            self.own.draw(d)
             st = self.soft_state(); self.soft_keys(d, [(k, *st[k]) for k in SOFT_KEYS])
+            if self.typing is not None:
+                self.draw_typing(d)
             return
         cs = self.code_set(dev)
         raw = self.raw_dev
@@ -1081,6 +1107,8 @@ class App:
         if self.raw_dev.get("modes"):
             backend = " + ".join(m.get("label", k) for k, m in self.raw_dev["modes"].items())
         sub = (dev["model"] + "  \u00b7  " if dev.get("model") else "") + f"{backend}  \u00b7  {n} {unit}{'' if n == 1 else 's'}" + ("  \u00b7  more to come" if dev.get("todo") else "")
+        if dev.get("backend") == "assist":
+            sub = "Home Assistant  \u00b7  ask by voice"
         d.text(((hw.W - d.textlength(sub, font=F_SMALL)) / 2, 124), sub, font=F_SMALL, fill=MUTED)
         if len(self.devices) > 1:
             d.text((20, 70), "◀", font=F_BIG, fill=MUTED)
@@ -1111,20 +1139,20 @@ class App:
             return
         if code == hw.ENTER and down and self.fn and self.view == "remote" and self.dev:
             self.open_keyboard(); return    # Fn+Enter: the universal keyboard key
-        if self.view == "remote" and self.dev and self.dev.get("backend") == "announce":
-            busy = self.ann.mode != "pick"
+        card = self.own
+        if card:
             soft = {hw.DIGIT[k]: k for k in SOFT_KEYS}
-            if code == hw.ESC and not down and self.ann.ate_esc:   # the release of an ESC the card already used
-                self.ann.ate_esc = False
+            if code == hw.ESC and not down and card.ate_esc:   # the release of an ESC the card already used
+                card.ate_esc = False
                 return
-            if busy or (code not in soft and code != hw.ESC):
-                if self.ann.key(code, down):
+            if card.busy or (code not in soft and code != hw.ESC):
+                if card.key(code, down):
                     if code == hw.ESC and down:
-                        self.ann.ate_esc = True
+                        card.ate_esc = True
                     return
             elif code in soft and down and soft[code] in "78":
                 if self.soft_state()[soft[code]][1]:
-                    self.ann.soft(soft[code])
+                    card.soft(soft[code])
                 return
         if code == hw.ESC:
             if down:
@@ -1219,8 +1247,8 @@ class App:
                 self.esc_down + EXIT_HOLD if self.esc_down is not None else None,
                 self.enter_down + HOLD_DIM if self.enter_down is not None and not self.enter_held else None,
                 self.hold[2] + HOLD_DIM if self.hold else None]
-        if self.view == "remote" and self.dev and self.dev.get("backend") == "announce":
-            due.append(self.ann.next_due(now))
+        if self.own:
+            due.append(self.own.next_due(now))
         due = [t for t in due if t is not None]
         return max(0.0, min(due) - now) if due else IDLE_WAIT
 
@@ -1235,8 +1263,8 @@ class App:
                 now = time.monotonic()
                 if self.esc_down is not None and now - self.esc_down >= EXIT_HOLD:
                     break
-                if self.view == "remote" and self.dev and self.dev.get("backend") == "announce":
-                    self.ann.tick()
+                if self.own:
+                    self.own.tick()
                 if self.enter_down is not None and not self.enter_held and now - self.enter_down >= HOLD_DIM:
                     self.enter_held = True                    # ENTER held: long press (drag while steering)
                     self.kdc.send({"singlehold": True}); self.say("Long press", 1)

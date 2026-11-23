@@ -359,6 +359,11 @@ class Announce:
         self.send_started = 0.0
         self.job, self.worker = 0, None   # the clip being levelled off the UI thread
 
+    @property
+    def busy(self):
+        """In the middle of something (recording, confirming, the alarm): every key is this card's."""
+        return self.mode != "pick"
+
     # selection, kept in the settings file; everything selected the first time
     def targets(self, dev):
         return dev.get("targets", [])[:9]
