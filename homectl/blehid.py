@@ -15,6 +15,12 @@ What was learned on a RoamView S6 (Android 15), 2026-11-22:
   sees a HID service; it is refused at the first read, so keys never reach it. Never `block` such a
   device in BlueZ instead: after a blocked device's connection ends, the kernel re-enables the
   advertising as non-connectable and nothing can connect any more.
+- Android gives up on a keyboard whose service it cannot read, and then stays connected doing
+  nothing until a new connection. That happens when the service goes away under it (BlueZ takes about
+  two seconds to hang up after it is asked), when it connects while the service is being registered,
+  and often on the first connection after a registration, when it is told the services changed. So:
+  advertise only once registered, hang up and wait before unregistering, and reconnect a host that
+  connects without reading the service.
 - BlueZ will not redo a Pair-button pairing with a device it already knows (JustWorksRepairing =
   never), so the agent compares a code (DisplayYesNo) and the card asks ENTER / ESC.
 """
@@ -30,6 +36,7 @@ ADAPTER = "/org/bluez/" + os.environ.get("HC_HID_ADAPTER", "hci0")   # e.g. hci1
 PROPS = "org.freedesktop.DBus.Properties"
 CHRC, DESC, DEVICE, ADAPTER1 = ("org.bluez.GattCharacteristic1", "org.bluez.GattDescriptor1",
                                 "org.bluez.Device1", "org.bluez.Adapter1")
+HID_UUID = "00001812-0000-1000-8000-00805f9b34fb"
 CONFIRM_WAIT = 20            # seconds the card asks "pair with this device?": a pairing, and a read held
                              # back meanwhile, both give up at 25 to 30
 
@@ -180,7 +187,7 @@ class Hid:
         self.asking = None       # while state is "confirm": {"name", "addr", "code"} of the device asking
         self.lock = threading.Lock()     # the report state below, set from the app's thread and the gyro's
         self.run_lock = threading.Lock()
-        self.thread, self.loop, self.glib, self.again, self.want = None, None, None, False, False
+        self.thread, self.loop, self.glib, self.again, self.want, self.stopping = None, None, None, False, False, False
         self.reports = {}        # name -> its characteristic, while running
         self.buttons, self.held, self.cons, self.mods, self.keys, self.mouse = 0, [], [], 0, [], 0
 
@@ -215,6 +222,7 @@ class Hid:
         with self.run_lock:
             if self.thread and self.thread.is_alive():
                 self.again = True
+                self.state = "starting"
                 return
             self.again, self.want = False, True
             self.state = "starting"
@@ -305,23 +313,30 @@ class Hid:
                 self.state = "error"
                 loop.quit()
             return cb
-        dbus.Interface(bus.get_object("org.bluez", ADAPTER), "org.bluez.GattManager1").RegisterApplication(
-            BASE, {}, reply_handler=lambda: None, error_handler=failed("RegisterApplication"))
         self.adverts = dbus.Interface(bus.get_object("org.bluez", ADAPTER), "org.bluez.LEAdvertisingManager1")
-        self.adverts.RegisterAdvertisement(BASE + "/adv", {}, reply_handler=lambda: None,
-                                           error_handler=failed("RegisterAdvertisement"))
-        self.kicks = 0
+        self.stopping = False
+        def registered():
+            # Advertise only once the service is whole: a host that connects while it is being built (or
+            # after it has gone) finds no HID service, gives up, and stays connected doing nothing.
+            if self.stopping:
+                return
+            if self.host_path and self._dev(self.host_path, "Connected") == "1":
+                # Connected already (the app was killed, or something else here advertises): it has given
+                # up on the service that went away and looks again only on a new connection.
+                self._say("host still connected from before; reconnecting it")
+                self._hang_up(self.host_path)
+            self.adverts.RegisterAdvertisement(BASE + "/adv", {}, reply_handler=lambda: None,
+                                               error_handler=failed("RegisterAdvertisement"))
+        dbus.Interface(bus.get_object("org.bluez", ADAPTER), "org.bluez.GattManager1").RegisterApplication(
+            BASE, {}, reply_handler=registered, error_handler=failed("RegisterApplication"))
+        self.kicks, self.timers, self.opened = 0, {}, False
+        self.others = {str(u) for u in self.adapter.Get(ADAPTER1, "UUIDs")} - {HID_UUID}   # other programs' services
         bus.add_signal_receiver(self._device_changed, dbus_interface=PROPS, signal_name="PropertiesChanged",
                                 bus_name="org.bluez", path_keyword="path")
         with self.run_lock:
             self.loop, self.glib = loop, GLib
             if not self.want:                # closed while this was still setting up
                 GLib.idle_add(self._stop)
-        if self.host_path and self._dev(self.host_path, "Connected") == "1":
-            # Still connected from before (the app was killed): Android has given up on the service that
-            # went away and looks again only on a new connection.
-            self._say("host still connected from before; reconnecting it")
-            self._hang_up(self.host_path)
         self._update()
         try:
             loop.run()
@@ -336,27 +351,36 @@ class Hid:
                 self.state = "idle"
 
     def _stop(self):
-        """In the loop's thread: let go of everything held, hang up on the host, put pairing back."""
+        """In the loop's thread: let go of everything held, stop being connectable, hang up on the host,
+        and only then take the service away. BlueZ hangs up about two seconds after it is asked, and a
+        host that is still connected when the service goes (or that reconnects into its absence) gives
+        up on it, so the order and the wait both matter."""
+        if self.stopping:
+            return False
+        self.stopping = True
         for name, c in self.reports.items():
             self._emit(c, IDLE[name])
         self._asked(False)
+        for timer in self.timers.values():
+            self.glib.source_remove(timer)
+        self.timers = {}
+        linked = bool(self.host_path) and self._dev(self.host_path, "Connected") == "1"
         try:
-            # The advertisement goes first. Android reconnects to a bonded keyboard within a second of
-            # being hung up on; if it still finds us while the service is going away, it sees no HID
-            # service, gives up, and then waits for someone to tap Connect in its settings.
             self.adverts.UnregisterAdvertisement(BASE + "/adv")
-        except Exception as e:
-            self._say(f"closing: {e}")
+        except Exception:
+            pass                             # not registered yet (closed while starting)
         try:
-            if self.host_path:
-                dev = self.dbus.Interface(self.bus.get_object("org.bluez", self.host_path), DEVICE)
-                dev.Disconnect(reply_handler=lambda: None, error_handler=lambda e: None)
+            if linked:
+                self._hang_up(self.host_path)
             self.adapter.Set(ADAPTER1, "PairableTimeout", self.dbus.UInt32(self.was_timeout))
             if not self.was_pairable:
                 self.adapter.Set(ADAPTER1, "Pairable", self.dbus.Boolean(False))
         except Exception as e:
             self._say(f"closing: {e}")
-        self.glib.timeout_add(150, self.loop.quit)   # after the idle reports and the disconnect have gone out
+        if linked:                           # _device_changed ends the loop when the link is down; else after 3 s
+            self.glib.timeout_add_seconds(3, self.loop.quit)
+        else:
+            self.glib.timeout_add(150, self.loop.quit)
         return False
 
     # ---- who is let in (all in the loop's thread)
@@ -371,11 +395,12 @@ class Hid:
         file, the first device to try is put to the user (ENTER / ESC on the card) and its reads wait
         for the answer: Android keeps an empty key map for a device whose first read was refused."""
         refuse = lambda: no(self.dbus.exceptions.DBusException("not this device", name="org.bluez.Error.NotAuthorized"))
-        if path and path == self.host_path:
-            return ok()
-        if path and self.host and self._dev(path, "Address") == self.host["addr"]:
+        if path and self.host and path != self.host_path and self._dev(path, "Address") == self.host["addr"]:
             self.host_path = path
-            self._update()
+        if path and path == self.host_path:
+            if not self.opened:              # the host is reading the service: it has really opened it
+                self.opened = True
+                self._update()
             return ok()
         if path and not self.host and path not in self.refused and not self.pending:
             self._ask(path, None)
@@ -411,7 +436,7 @@ class Hid:
         for answer in waiting:               # the reads held back while the question was open
             answer[0 if yes else 1]()
         if yes:
-            self.host_path = path
+            self.host_path, self.opened = path, self.opened or bool(waiting)
             self.host = None                 # the device accepted replaces whatever was on file
             if ok:
                 ok()                         # a pairing: its address is final once it has bonded (_device_changed)
@@ -443,32 +468,65 @@ class Hid:
             self._say(f"could not save {HOST}: {e}")
         self._say(f"host is {self.host['name']} ({self.host['addr']})")
 
+    def _later(self, name, secs, what):
+        """One pending timer per name; a new one replaces the old. All are dropped when the run stops."""
+        if name in self.timers:
+            self.glib.source_remove(self.timers[name])
+        def fire():
+            self.timers.pop(name, None)
+            what()
+            return False
+        self.timers[name] = self.glib.timeout_add_seconds(secs, fire)
+
     def _device_changed(self, iface, changed, invalidated, path=None):
+        if iface == ADAPTER1 and path == ADAPTER and "UUIDs" in changed:
+            others = {str(u) for u in changed["UUIDs"]} - {HID_UUID}
+            if others != self.others:                    # another program added or removed a GATT service
+                self.others = others
+                self._later("settle", 3, self._resettle)
+            return
         if iface != DEVICE or path != self.host_path:
+            return
+        if self.stopping:
+            if "Connected" in changed and not changed["Connected"] and self.loop is not None:
+                self.loop.quit()                         # the host is off the link: the service can go now
             return
         if (changed.get("Bonded") and not self.host) or (self.host and "Address" in changed):
             self._keep(path)                             # the pairing just accepted went through (or its address settled)
         if "Connected" in changed:
             self._update()
-            if changed["Connected"] and self.kicks < 3:      # it should open the service within seconds
-                self.glib.timeout_add_seconds(6, self._kick)
+            if changed["Connected"] and not self.opened and self.kicks < 3:
+                self._later("kick", 4, self._kick)           # it should read the service within a second or two
 
     def _kick(self):
-        """The host is connected but has not opened the HID service (it gave up on an earlier try and
-        only looks again on a new connection): hang up, so it connects afresh."""
-        if self.loop is not None and self.host_path and self.state not in ("connected", "confirm") \
-                and self._dev(self.host_path, "Connected") == "1":
+        """The host is connected but has not read the HID service. Seen on every first connection after
+        the service was registered: Android is told the services changed, its keyboard set-up collides
+        with the re-read, it gives up, and it looks again only on a new connection. Being subscribed
+        proves nothing (BlueZ restores a bonded device's subscriptions by itself); a read does. So
+        hang up, and the next connection goes through. After three tries the card stops insisting."""
+        if self.host_path and not self.opened and not self.pending and self._dev(self.host_path, "Connected") == "1":
             self.kicks += 1
-            self._say(f"host connected without opening the service; reconnecting it ({self.kicks})")
+            self._say(f"host connected without reading the service; reconnecting it ({self.kicks})")
             self._hang_up(self.host_path)
-        return False
+            if self.kicks >= 3:
+                self._update()
+
+    def _resettle(self):
+        """Another program changed the Cardputer's GATT services (seen: a MeshCore node that could not
+        start, registering and dropping its service on every retry). Android re-reads everything when
+        that happens; if the re-read fails it drops the keyboard and stays connected, and nothing here
+        can see that. So once the change has settled, hang up: a new connection reads it all cleanly."""
+        if self.host_path and self._dev(self.host_path, "Connected") == "1":
+            self._say("another program changed the Bluetooth services; reconnecting the host")
+            self._hang_up(self.host_path)
 
     def _update(self):
-        if self.state in ("idle", "error", "no bluetooth") and self.loop is None:
+        if self.stopping or (self.state in ("idle", "error", "no bluetooth") and self.loop is None):
             return
         if self.pending:
             self.state = "confirm"
-        elif self.host_path and any(c.notifying for c in self.reports.values()) and self._dev(self.host_path, "Connected") == "1":
+        elif self.host_path and (self.opened or self.kicks >= 3) and any(c.notifying for c in self.reports.values()) \
+                and self._dev(self.host_path, "Connected") == "1":
             self.state = "connected"
         else:
             self.state = "classic on" if self.classic else "waiting"

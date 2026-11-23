@@ -1253,7 +1253,7 @@ class App:
         finally:
             self.stop_ha()
             self.leave_card()
-            self.hid.close(wait=1.5)
+            self.hid.close(wait=3.5)      # BlueZ takes about two seconds to hang up
             self.ann.rec.cancel()
             self.flush_settings()
             self.screen.close()
